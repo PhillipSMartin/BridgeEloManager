@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { bootstrapDatabase } from "./lib/bootstrap";
 import { seedPlayers } from "./lib/seed";
 
 const rawPort = process.env["PORT"];
@@ -16,7 +17,8 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-seedPlayers()
+bootstrapDatabase()
+  .then(() => seedPlayers())
   .then(() => {
     app.listen(port, (err) => {
       if (err) {
@@ -28,6 +30,6 @@ seedPlayers()
     });
   })
   .catch((err) => {
-    logger.error({ err }, "Failed to seed database, aborting startup");
+    logger.error({ err }, "Failed to initialize server, aborting startup");
     process.exit(1);
   });

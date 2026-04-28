@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import type { Player, Tournament } from "@workspace/api-client-react";
 import { useBridgeData, useTournamentRankingsData } from "@/hooks/use-bridge";
 import { Input } from "@/components/ui/input";
 
@@ -34,7 +35,7 @@ export function RankingsTab() {
   );
 }
 
-function TournamentRow({ tournament, players }: { tournament: any, players: any[] }) {
+function TournamentRow({ tournament, players }: { tournament: Tournament; players: Player[] }) {
   const { rankings, upsertRankings } = useTournamentRankingsData(tournament.id);
   const [localVals, setLocalVals] = useState<Record<number, string>>({});
 
