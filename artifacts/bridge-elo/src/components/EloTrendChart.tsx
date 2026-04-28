@@ -169,8 +169,8 @@ export function EloTrendChart() {
               name={player.name}
               stroke={COLORS[idx % COLORS.length]}
               strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
+              dot={false}
+              activeDot={false}
               hide={hiddenPlayers.has(player.id)}
               connectNulls
             />
