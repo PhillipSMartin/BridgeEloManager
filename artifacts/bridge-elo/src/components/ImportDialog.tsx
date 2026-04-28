@@ -24,6 +24,7 @@ interface ParsedRanking {
 interface ParsedTournament {
   sequenceIndex: number;
   label: string | null;
+  date: string | null;
   rankings: ParsedRanking[];
 }
 
@@ -78,6 +79,7 @@ function parseSpreadsheet(workbook: XLSX.WorkBook): ParsedData | null {
     tournaments.push({
       sequenceIndex: index,
       label: null,
+      date: null,
       rankings,
     });
   }
@@ -109,13 +111,59 @@ function parseCsvRow(line: string): string[] {
   return fields;
 }
 
-function parseCsv(text: string): ParsedData | null {
-  const lines = text
-    .split(/\r?\n/)
-    .filter((l) => l.trim().length > 0);
+function parseCsvWide(lines: string[]): ParsedData | null {
+  // Wide format: #, Date, Name, Player1, Player2, ...
+  // One row per tournament, player scores as columns
+  const header = parseCsvRow(lines[0]);
+  const headerLower = header.map((h) => h.toLowerCase().trim());
 
-  if (lines.length < 2) return null;
+  const hashIdx = headerLower.indexOf("#");
+  const dateIdx = headerLower.indexOf("date");
+  const nameIdx = headerLower.indexOf("name");
 
+  if (hashIdx === -1) return null;
+
+  // Player columns start after the metadata columns
+  const metaCols = new Set([hashIdx, dateIdx, nameIdx].filter((i) => i !== -1));
+  const playerCols: Array<{ idx: number; name: string }> = [];
+  for (let i = 0; i < header.length; i++) {
+    if (!metaCols.has(i) && header[i].trim()) {
+      playerCols.push({ idx: i, name: header[i].trim() });
+    }
+  }
+
+  if (playerCols.length === 0) return null;
+
+  const players = playerCols.map((p) => p.name);
+  const tournaments: ParsedTournament[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvRow(lines[i]);
+    const rawIndex = (cols[hashIdx] ?? "").trim().replace(/^T/i, "");
+    const seqIndex = parseInt(rawIndex, 10);
+    if (isNaN(seqIndex)) continue;
+
+    const label = nameIdx !== -1 ? (cols[nameIdx] ?? "").trim() || null : null;
+
+    const rankings: ParsedRanking[] = [];
+    for (const pc of playerCols) {
+      const val = (cols[pc.idx] ?? "").trim();
+      const parsed = parseFloat(val);
+      const reverseRanking = val === "" || val.toLowerCase() === "null" ? null : (isNaN(parsed) ? null : parsed);
+      rankings.push({ playerName: pc.name, reverseRanking });
+    }
+
+    const date = dateIdx !== -1 ? (cols[dateIdx] ?? "").trim() || null : null;
+
+    tournaments.push({ sequenceIndex: seqIndex, label, date, rankings });
+  }
+
+  if (tournaments.length === 0) return null;
+  return { players, tournaments };
+}
+
+function parseCsvNarrow(lines: string[]): ParsedData | null {
+  // Narrow format: Tournament, Player, ReverseRanking (one row per player per tournament)
   const header = parseCsvRow(lines[0]).map((h) => h.toLowerCase());
   const tournamentIdx = header.indexOf("tournament");
   const playerIdx = header.indexOf("player");
@@ -140,15 +188,12 @@ function parseCsv(text: string): ParsedData | null {
     playerSet.add(playerName);
 
     if (!tournamentMap.has(tIndex)) {
-      tournamentMap.set(tIndex, { sequenceIndex: tIndex, label: null, rankings: [] });
+      tournamentMap.set(tIndex, { sequenceIndex: tIndex, label: null, date: null, rankings: [] });
     }
 
     const parsed = parseFloat(rankingVal);
     const reverseRanking = rankingVal === "" || rankingVal.toLowerCase() === "null" ? null : (isNaN(parsed) ? null : parsed);
-    tournamentMap.get(tIndex)!.rankings.push({
-      playerName,
-      reverseRanking,
-    });
+    tournamentMap.get(tIndex)!.rankings.push({ playerName, reverseRanking });
   }
 
   if (tournamentMap.size === 0) return null;
@@ -158,6 +203,24 @@ function parseCsv(text: string): ParsedData | null {
   );
 
   return { players: Array.from(playerSet), tournaments };
+}
+
+function parseCsv(text: string): ParsedData | null {
+  const lines = text
+    .split(/\r?\n/)
+    .filter((l) => l.trim().length > 0);
+
+  if (lines.length < 2) return null;
+
+  const firstHeader = parseCsvRow(lines[0]).map((h) => h.toLowerCase().trim());
+
+  // Detect wide format by presence of "#" as first meaningful column
+  if (firstHeader[0] === "#") {
+    return parseCsvWide(lines);
+  }
+
+  // Fall back to narrow format
+  return parseCsvNarrow(lines);
 }
 
 export function ImportDialog() {
@@ -283,9 +346,9 @@ export function ImportDialog() {
               2 (columns B–K), wins per tournament in the same columns starting from row 3.
             </p>
             <p className="text-xs">
-              <strong>CSV:</strong> requires columns named <code>Tournament</code>,{" "}
-              <code>Player</code>, and <code>ReverseRanking</code> (one row per player per
-              tournament).
+              <strong>CSV:</strong> accepts the file produced by the Export CSV button, or a
+              narrow-format CSV with columns <code>Tournament</code>, <code>Player</code>, and{" "}
+              <code>ReverseRanking</code>.
             </p>
           </div>
 

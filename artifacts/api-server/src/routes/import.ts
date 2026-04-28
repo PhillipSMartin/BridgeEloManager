@@ -12,6 +12,7 @@ interface ImportRankingEntry {
 interface ImportTournamentEntry {
   sequenceIndex: number;
   label?: string | null;
+  date?: string | null;
   rankings: ImportRankingEntry[];
 }
 
@@ -148,6 +149,7 @@ router.post("/import", async (req, res): Promise<void> => {
           .values({
             sequenceIndex: entry.sequenceIndex,
             label: entry.label ?? null,
+            date: entry.date ?? null,
           })
           .returning();
 
