@@ -4,6 +4,7 @@ import { AddTournamentDialog } from "@/components/AddTournamentDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { RankingsTab } from "@/components/RankingsTab";
 import { EloScoresTab } from "@/components/EloScoresTab";
+import { EloTrendChart } from "@/components/EloTrendChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBridgeData } from "@/hooks/use-bridge";
 
@@ -41,6 +42,13 @@ export default function Home() {
             >
               ELO Scores
             </TabsTrigger>
+            <TabsTrigger 
+              value="trends" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2 font-medium"
+              data-testid="tab-trends"
+            >
+              ELO Trends
+            </TabsTrigger>
           </TabsList>
           
           <div className="bg-card rounded-lg shadow-sm border p-4 flex-1">
@@ -49,6 +57,9 @@ export default function Home() {
             </TabsContent>
             <TabsContent value="elo" className="mt-0 h-full">
               <EloScoresTab />
+            </TabsContent>
+            <TabsContent value="trends" className="mt-0 h-full">
+              <EloTrendChart />
             </TabsContent>
           </div>
         </Tabs>
