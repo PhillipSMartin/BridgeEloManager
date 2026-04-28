@@ -8,3 +8,69 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export interface Player {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
+export interface CreatePlayerBody {
+  name: string;
+}
+
+export interface Tournament {
+  id: number;
+  sequenceIndex: number;
+  /** @nullable */
+  label: string | null;
+  createdAt: string;
+}
+
+export interface CreateTournamentBody {
+  /** @nullable */
+  label?: string | null;
+}
+
+export interface TournamentRanking {
+  id: number;
+  tournamentId: number;
+  playerId: number;
+  /** @nullable */
+  reverseRanking: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RankingEntry {
+  playerId: number;
+  /** @nullable */
+  reverseRanking: number | null;
+}
+
+export interface UpsertRankingsBody {
+  rankings: RankingEntry[];
+}
+
+export interface PlayerEloRow {
+  playerId: number;
+  playerName: string;
+  elo: number;
+}
+
+export interface TournamentEloSnapshot {
+  tournamentId: number;
+  sequenceIndex: number;
+  /** @nullable */
+  label: string | null;
+  elos: PlayerEloRow[];
+}
+
+export interface EloHistory {
+  players: Player[];
+  snapshots: TournamentEloSnapshot[];
+}

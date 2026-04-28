@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: players
+    description: Player management
+  - name: tournaments
+    description: Tournament management
+  - name: elo
+    description: ELO calculations
 paths:
   /healthz:
     get:
@@ -24,6 +30,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: List all players
+      description: Returns all players ordered by creation time
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: createPlayer
+      tags: [players]
+      summary: Create a new player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlayerBody"
+      responses:
+        "201":
+          description: Created player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /players/{id}:
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      summary: Delete a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tournaments:
+    get:
+      operationId: listTournaments
+      tags: [tournaments]
+      summary: List all tournaments
+      description: Returns all tournaments ordered by sequence index
+      responses:
+        "200":
+          description: List of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tournament"
+    post:
+      operationId: createTournament
+      tags: [tournaments]
+      summary: Create a new tournament round
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTournamentBody"
+      responses:
+        "201":
+          description: Created tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tournaments/{id}:
+    delete:
+      operationId: deleteTournament
+      tags: [tournaments]
+      summary: Delete a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tournaments/{id}/rankings:
+    get:
+      operationId: getTournamentRankings
+      tags: [tournaments]
+      summary: Get rankings for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of rankings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentRanking"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertTournamentRankings
+      tags: [tournaments]
+      summary: Bulk upsert rankings for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertRankingsBody"
+      responses:
+        "200":
+          description: Updated rankings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentRanking"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /elo-history:
+    get:
+      operationId: getEloHistory
+      tags: [elo]
+      summary: Get computed ELO history
+      description: Returns the full ELO history for all players across all tournaments, computed from stored rankings
+      responses:
+        "200":
+          description: ELO history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EloHistory"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +239,152 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+
+    CreatePlayerBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: integer
+        sequenceIndex:
+          type: integer
+        label:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sequenceIndex
+        - label
+        - createdAt
+
+    CreateTournamentBody:
+      type: object
+      properties:
+        label:
+          type: ["string", "null"]
+      required: []
+
+    TournamentRanking:
+      type: object
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        playerId:
+          type: integer
+        reverseRanking:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tournamentId
+        - playerId
+        - reverseRanking
+        - createdAt
+        - updatedAt
+
+    RankingEntry:
+      type: object
+      properties:
+        playerId:
+          type: integer
+        reverseRanking:
+          type: ["integer", "null"]
+      required:
+        - playerId
+        - reverseRanking
+
+    UpsertRankingsBody:
+      type: object
+      properties:
+        rankings:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankingEntry"
+      required:
+        - rankings
+
+    PlayerEloRow:
+      type: object
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        elo:
+          type: number
+      required:
+        - playerId
+        - playerName
+        - elo
+
+    TournamentEloSnapshot:
+      type: object
+      properties:
+        tournamentId:
+          type: integer
+        sequenceIndex:
+          type: integer
+        label:
+          type: ["string", "null"]
+        elos:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerEloRow"
+      required:
+        - tournamentId
+        - sequenceIndex
+        - label
+        - elos
+
+    EloHistory:
+      type: object
+      properties:
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/TournamentEloSnapshot"
+      required:
+        - players
+        - snapshots

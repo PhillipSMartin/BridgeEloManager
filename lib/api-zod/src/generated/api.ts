@@ -14,3 +14,129 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns all players ordered by creation time
+ * @summary List all players
+ */
+export const ListPlayersResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListPlayersResponse = zod.array(ListPlayersResponseItem);
+
+/**
+ * @summary Create a new player
+ */
+export const CreatePlayerBody = zod.object({
+  name: zod.string(),
+});
+
+/**
+ * @summary Delete a player
+ */
+export const DeletePlayerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * Returns all tournaments ordered by sequence index
+ * @summary List all tournaments
+ */
+export const ListTournamentsResponseItem = zod.object({
+  id: zod.number(),
+  sequenceIndex: zod.number(),
+  label: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+});
+export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem);
+
+/**
+ * @summary Create a new tournament round
+ */
+export const CreateTournamentBody = zod.object({
+  label: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a tournament
+ */
+export const DeleteTournamentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get rankings for a tournament
+ */
+export const GetTournamentRankingsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTournamentRankingsResponseItem = zod.object({
+  id: zod.number(),
+  tournamentId: zod.number(),
+  playerId: zod.number(),
+  reverseRanking: zod.number().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const GetTournamentRankingsResponse = zod.array(
+  GetTournamentRankingsResponseItem,
+);
+
+/**
+ * @summary Bulk upsert rankings for a tournament
+ */
+export const UpsertTournamentRankingsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpsertTournamentRankingsBody = zod.object({
+  rankings: zod.array(
+    zod.object({
+      playerId: zod.number(),
+      reverseRanking: zod.number().nullable(),
+    }),
+  ),
+});
+
+export const UpsertTournamentRankingsResponseItem = zod.object({
+  id: zod.number(),
+  tournamentId: zod.number(),
+  playerId: zod.number(),
+  reverseRanking: zod.number().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const UpsertTournamentRankingsResponse = zod.array(
+  UpsertTournamentRankingsResponseItem,
+);
+
+/**
+ * Returns the full ELO history for all players across all tournaments, computed from stored rankings
+ * @summary Get computed ELO history
+ */
+export const GetEloHistoryResponse = zod.object({
+  players: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  snapshots: zod.array(
+    zod.object({
+      tournamentId: zod.number(),
+      sequenceIndex: zod.number(),
+      label: zod.string().nullable(),
+      elos: zod.array(
+        zod.object({
+          playerId: zod.number(),
+          playerName: zod.string(),
+          elo: zod.number(),
+        }),
+      ),
+    }),
+  ),
+});
