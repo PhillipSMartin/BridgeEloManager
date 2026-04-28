@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import { AddPlayerDialog } from "@/components/AddPlayerDialog";
-import { AddTournamentDialog } from "@/components/AddTournamentDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { RankingsTab } from "@/components/RankingsTab";
 import { EloScoresTab } from "@/components/EloScoresTab";
@@ -21,7 +20,6 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <ImportDialog />
           <AddPlayerDialog />
-          <AddTournamentDialog />
         </div>
       </header>
 
