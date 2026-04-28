@@ -1,6 +1,7 @@
 import React from "react";
 import { AddPlayerDialog } from "@/components/AddPlayerDialog";
 import { ImportDialog } from "@/components/ImportDialog";
+import { ExportButton } from "@/components/ExportButton";
 import { RankingsTab } from "@/components/RankingsTab";
 import { EloScoresTab } from "@/components/EloScoresTab";
 import { EloTrendChart } from "@/components/EloTrendChart";
@@ -18,6 +19,7 @@ export default function Home() {
           <h1 className="text-xl font-semibold tracking-tight text-foreground">Bridge ELO Tracker</h1>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButton />
           <ImportDialog />
           <AddPlayerDialog />
         </div>
