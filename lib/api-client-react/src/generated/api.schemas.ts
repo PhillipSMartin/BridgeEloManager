@@ -40,6 +40,13 @@ export interface CreateTournamentBody {
   date?: string | null;
 }
 
+export interface UpdateTournamentBody {
+  /** @nullable */
+  label?: string | null;
+  /** @nullable */
+  date?: string | null;
+}
+
 export interface TournamentRanking {
   id: number;
   tournamentId: number;

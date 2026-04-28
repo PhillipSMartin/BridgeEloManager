@@ -43,6 +43,39 @@ router.post("/tournaments", async (req, res): Promise<void> => {
   res.status(201).json(tournament);
 });
 
+router.patch("/tournaments/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const label = req.body?.label !== undefined ? req.body.label : undefined;
+  const date = req.body?.date !== undefined ? req.body.date : undefined;
+
+  const updates: Record<string, unknown> = {};
+  if (label !== undefined) updates.label = label;
+  if (date !== undefined) updates.date = date;
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
+  }
+
+  const [tournament] = await db
+    .update(tournamentsTable)
+    .set(updates)
+    .where(eq(tournamentsTable.id, id))
+    .returning();
+
+  if (!tournament) {
+    res.status(404).json({ error: "Tournament not found" });
+    return;
+  }
+
+  res.json(tournament);
+});
+
 router.delete("/tournaments/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeleteTournamentParams.safeParse({ id: raw });

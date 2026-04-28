@@ -27,6 +27,7 @@ import type {
   Player,
   Tournament,
   TournamentRanking,
+  UpdateTournamentBody,
   UpsertRankingsBody,
 } from "./api.schemas";
 
@@ -519,6 +520,93 @@ export const useCreateTournament = <
   TContext
 > => {
   return useMutation(getCreateTournamentMutationOptions(options));
+};
+
+/**
+ * @summary Update a tournament's label and/or date
+ */
+export const getUpdateTournamentUrl = (id: number) => {
+  return `/api/tournaments/${id}`;
+};
+
+export const updateTournament = async (
+  id: number,
+  updateTournamentBody: UpdateTournamentBody,
+  options?: RequestInit,
+): Promise<Tournament> => {
+  return customFetch<Tournament>(getUpdateTournamentUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTournamentBody),
+  });
+};
+
+export const getUpdateTournamentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTournament>>,
+    TError,
+    { id: number; data: BodyType<UpdateTournamentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTournament>>,
+  TError,
+  { id: number; data: BodyType<UpdateTournamentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateTournament"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTournament>>,
+    { id: number; data: BodyType<UpdateTournamentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateTournament(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTournamentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTournament>>
+>;
+export type UpdateTournamentMutationBody = BodyType<UpdateTournamentBody>;
+export type UpdateTournamentMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a tournament's label and/or date
+ */
+export const useUpdateTournament = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTournament>>,
+    TError,
+    { id: number; data: BodyType<UpdateTournamentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTournament>>,
+  TError,
+  { id: number; data: BodyType<UpdateTournamentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTournamentMutationOptions(options));
 };
 
 /**

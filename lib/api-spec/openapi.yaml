@@ -131,6 +131,31 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /tournaments/{id}:
+    patch:
+      operationId: updateTournament
+      tags: [tournaments]
+      summary: Update a tournament's label and/or date
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTournamentBody"
+      responses:
+        "200":
+          description: Updated tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+        "404":
+          description: Tournament not found
     delete:
       operationId: deleteTournament
       tags: [tournaments]
@@ -327,6 +352,15 @@ components:
         - createdAt
 
     CreateTournamentBody:
+      type: object
+      properties:
+        label:
+          type: ["string", "null"]
+        date:
+          type: ["string", "null"]
+      required: []
+
+    UpdateTournamentBody:
       type: object
       properties:
         label:

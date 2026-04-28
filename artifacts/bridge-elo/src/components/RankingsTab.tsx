@@ -6,6 +6,7 @@ import {
   getListTournamentsQueryKey,
   useUpsertTournamentRankings,
   useCreateTournament,
+  useUpdateTournament,
 } from "@workspace/api-client-react";
 import { useBridgeData } from "@/hooks/use-bridge";
 import { Input } from "@/components/ui/input";
@@ -217,16 +218,43 @@ interface TournamentRowProps {
 }
 
 function TournamentRow({ tournament, players, localEdits, onChange, onBlur }: TournamentRowProps) {
+  const queryClient = useQueryClient();
+  const updateTournament = useUpdateTournament();
+  const [localDate, setLocalDate] = useState(tournament.date ?? "");
+  const [localLabel, setLocalLabel] = useState(tournament.label ?? "");
+
+  const handleMetaBlur = useCallback(async (field: "date" | "label", value: string) => {
+    const normalized = value.trim() || null;
+    const current = field === "date" ? (tournament.date ?? null) : (tournament.label ?? null);
+    if (normalized === current) return;
+    await updateTournament.mutateAsync({ id: tournament.id, data: { [field]: normalized } });
+    queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
+  }, [tournament.id, tournament.date, tournament.label, updateTournament, queryClient]);
+
   return (
     <tr className="hover:bg-muted/50 transition-colors">
       <td className="px-4 py-2 sticky left-0 bg-card z-10 font-mono font-medium border-r shadow-[1px_0_0_0_hsl(var(--border))]">
         {`T${tournament.sequenceIndex}`}
       </td>
-      <td className="px-4 py-2 border-r text-muted-foreground text-xs font-mono min-w-28">
-        {tournament.date ?? ""}
+      <td className="px-2 py-1 border-r min-w-28">
+        <Input
+          type="date"
+          value={localDate}
+          onChange={(e) => setLocalDate(e.target.value)}
+          onBlur={() => handleMetaBlur("date", localDate)}
+          className="h-8 font-mono bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
+          data-testid={`input-date-${tournament.id}`}
+        />
       </td>
-      <td className="px-4 py-2 border-r text-muted-foreground text-xs min-w-36">
-        {tournament.label ?? ""}
+      <td className="px-2 py-1 border-r min-w-36">
+        <Input
+          value={localLabel}
+          onChange={(e) => setLocalLabel(e.target.value)}
+          onBlur={() => handleMetaBlur("label", localLabel)}
+          placeholder="Optional name"
+          className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
+          data-testid={`input-label-${tournament.id}`}
+        />
       </td>
       {players.map((p) => {
         const key = `${tournament.id}:${p.id}`;

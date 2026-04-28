@@ -62,6 +62,26 @@ export const CreateTournamentBody = zod.object({
 });
 
 /**
+ * @summary Update a tournament's label and/or date
+ */
+export const UpdateTournamentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTournamentBody = zod.object({
+  label: zod.string().nullish(),
+  date: zod.string().nullish(),
+});
+
+export const UpdateTournamentResponse = zod.object({
+  id: zod.number(),
+  sequenceIndex: zod.number(),
+  label: zod.string().nullable(),
+  date: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Delete a tournament
  */
 export const DeleteTournamentParams = zod.object({
