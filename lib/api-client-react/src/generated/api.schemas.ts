@@ -28,12 +28,16 @@ export interface Tournament {
   sequenceIndex: number;
   /** @nullable */
   label: string | null;
+  /** @nullable */
+  date: string | null;
   createdAt: string;
 }
 
 export interface CreateTournamentBody {
   /** @nullable */
   label?: string | null;
+  /** @nullable */
+  date?: string | null;
 }
 
 export interface TournamentRanking {

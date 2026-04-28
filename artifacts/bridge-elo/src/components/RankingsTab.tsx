@@ -33,9 +33,10 @@ export function RankingsTab() {
 
   const [localEdits, setLocalEdits] = useState<Record<string, string>>({});
   const [draftValues, setDraftValues] = useState<Record<number, string>>({});
+  const [draftLabel, setDraftLabel] = useState("");
+  const [draftDate, setDraftDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const draftRowRef = useRef<HTMLTableRowElement>(null);
   const hasScrolled = useRef(false);
 
@@ -85,15 +86,17 @@ export function RankingsTab() {
   }, []);
 
   const handleSaveDraft = useCallback(async () => {
-    const hasAnyValue = players.some((p) => {
-      const v = draftValues[p.id] ?? "";
-      return v.trim() !== "";
-    });
+    const hasAnyValue = players.some((p) => (draftValues[p.id] ?? "").trim() !== "");
     if (!hasAnyValue) return;
 
     setIsSaving(true);
     try {
-      const newTournament = await createTournament.mutateAsync({ data: {} });
+      const newTournament = await createTournament.mutateAsync({
+        data: {
+          label: draftLabel.trim() || null,
+          date: draftDate.trim() || null,
+        },
+      });
       const payload = players.map((p) => {
         const v = draftValues[p.id] ?? "";
         return { playerId: p.id, reverseRanking: v.trim() !== "" ? Number(v) : null };
@@ -101,6 +104,8 @@ export function RankingsTab() {
       await upsertMutation.mutateAsync({ id: newTournament.id, data: { rankings: payload } });
 
       setDraftValues({});
+      setDraftLabel("");
+      setDraftDate("");
       hasScrolled.current = false;
 
       await queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
@@ -109,7 +114,7 @@ export function RankingsTab() {
     } finally {
       setIsSaving(false);
     }
-  }, [draftValues, players, createTournament, upsertMutation, queryClient]);
+  }, [draftValues, draftLabel, draftDate, players, createTournament, upsertMutation, queryClient]);
 
   if (players.length === 0) {
     return <div className="p-8 text-center text-muted-foreground" data-testid="empty-rankings">No players added yet.</div>;
@@ -123,11 +128,13 @@ export function RankingsTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div ref={scrollRef} className="w-full overflow-x-auto overflow-y-auto max-h-[65vh] border rounded-md bg-card">
+      <div className="w-full overflow-x-auto overflow-y-auto max-h-[65vh] border rounded-md bg-card">
         <table className="w-full text-sm text-left">
           <thead className="bg-muted text-muted-foreground text-xs uppercase font-mono sticky top-0 z-20">
             <tr>
-              <th className="px-4 py-3 border-b sticky left-0 bg-muted z-10 font-semibold w-32">Tournament</th>
+              <th className="px-4 py-3 border-b sticky left-0 bg-muted z-10 font-semibold w-24">#</th>
+              <th className="px-4 py-3 border-b font-semibold min-w-28">Date</th>
+              <th className="px-4 py-3 border-b font-semibold min-w-36">Name</th>
               {players.map((p) => (
                 <th key={p.id} className="px-4 py-3 border-b font-semibold min-w-24 text-center">{p.name}</th>
               ))}
@@ -147,6 +154,24 @@ export function RankingsTab() {
             <tr ref={draftRowRef} className="bg-primary/5 border-t-2 border-primary/20">
               <td className="px-4 py-2 sticky left-0 bg-primary/5 z-10 font-mono font-medium border-r text-muted-foreground">
                 T{nextIndex}
+              </td>
+              <td className="px-2 py-1 border-r">
+                <Input
+                  type="date"
+                  value={draftDate}
+                  onChange={(e) => setDraftDate(e.target.value)}
+                  className="h-8 font-mono bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
+                  data-testid="input-draft-date"
+                />
+              </td>
+              <td className="px-2 py-1 border-r">
+                <Input
+                  value={draftLabel}
+                  onChange={(e) => setDraftLabel(e.target.value)}
+                  placeholder="Optional name"
+                  className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
+                  data-testid="input-draft-label"
+                />
               </td>
               {players.map((p) => (
                 <td key={p.id} className="px-2 py-1 border-r last:border-r-0">
@@ -195,7 +220,13 @@ function TournamentRow({ tournament, players, localEdits, onChange, onBlur }: To
   return (
     <tr className="hover:bg-muted/50 transition-colors">
       <td className="px-4 py-2 sticky left-0 bg-card z-10 font-mono font-medium border-r shadow-[1px_0_0_0_hsl(var(--border))]">
-        {tournament.label || `T${tournament.sequenceIndex}`}
+        {`T${tournament.sequenceIndex}`}
+      </td>
+      <td className="px-4 py-2 border-r text-muted-foreground text-xs font-mono min-w-28">
+        {tournament.date ?? ""}
+      </td>
+      <td className="px-4 py-2 border-r text-muted-foreground text-xs min-w-36">
+        {tournament.label ?? ""}
       </td>
       {players.map((p) => {
         const key = `${tournament.id}:${p.id}`;

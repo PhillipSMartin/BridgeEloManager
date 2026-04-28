@@ -33,10 +33,11 @@ router.post("/tournaments", async (req, res): Promise<void> => {
       : 1;
 
   const label = req.body?.label ?? null;
+  const date = req.body?.date ?? null;
 
   const [tournament] = await db
     .insert(tournamentsTable)
-    .values({ sequenceIndex: nextIndex, label })
+    .values({ sequenceIndex: nextIndex, label, date })
     .returning();
 
   res.status(201).json(tournament);

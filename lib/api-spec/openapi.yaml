@@ -314,6 +314,8 @@ components:
           type: integer
         label:
           type: ["string", "null"]
+        date:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -321,12 +323,15 @@ components:
         - id
         - sequenceIndex
         - label
+        - date
         - createdAt
 
     CreateTournamentBody:
       type: object
       properties:
         label:
+          type: ["string", "null"]
+        date:
           type: ["string", "null"]
       required: []
 

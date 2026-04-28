@@ -15,6 +15,7 @@ export async function bootstrapDatabase(): Promise<void> {
         id SERIAL PRIMARY KEY,
         sequence_index INTEGER NOT NULL,
         label TEXT,
+        date TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
@@ -27,6 +28,11 @@ export async function bootstrapDatabase(): Promise<void> {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(tournament_id, player_id)
       );
+    `);
+
+    // Add date column to tournaments if it doesn't exist (migration for existing databases)
+    await client.query(`
+      ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS date TEXT;
     `);
 
     // Migrate reverse_ranking from INTEGER to REAL if needed (supports fractional wins like 0.5)

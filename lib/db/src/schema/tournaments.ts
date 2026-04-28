@@ -6,6 +6,7 @@ export const tournamentsTable = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   sequenceIndex: integer("sequence_index").notNull(),
   label: text("label"),
+  date: text("date"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -48,6 +48,7 @@ export const ListTournamentsResponseItem = zod.object({
   id: zod.number(),
   sequenceIndex: zod.number(),
   label: zod.string().nullable(),
+  date: zod.string().nullable(),
   createdAt: zod.coerce.date(),
 });
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem);
@@ -57,6 +58,7 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem);
  */
 export const CreateTournamentBody = zod.object({
   label: zod.string().nullish(),
+  date: zod.string().nullish(),
 });
 
 /**
