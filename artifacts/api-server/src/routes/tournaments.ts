@@ -114,6 +114,15 @@ router.put("/tournaments/:id/rankings", async (req, res): Promise<void> => {
   }
 
   const { rankings } = bodyParsed.data;
+
+  const invalidRanking = rankings.find(
+    (r) => r.reverseRanking !== null && r.reverseRanking !== undefined && r.reverseRanking < 0
+  );
+  if (invalidRanking) {
+    res.status(400).json({ error: "reverseRanking must be a non-negative integer or null" });
+    return;
+  }
+
   const tournamentId = params.data.id;
 
   if (rankings.length === 0) {
