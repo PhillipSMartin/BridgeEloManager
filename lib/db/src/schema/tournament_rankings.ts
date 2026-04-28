@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, real, timestamp, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
@@ -10,7 +10,7 @@ export const tournamentRankingsTable = pgTable(
     id: serial("id").primaryKey(),
     tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
     playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
-    reverseRanking: integer("reverse_ranking"),
+    reverseRanking: real("reverse_ranking"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },

@@ -114,6 +114,42 @@ export const UpsertTournamentRankingsResponse = zod.array(
 );
 
 /**
+ * Imports players, tournaments, and rankings from a parsed spreadsheet or CSV.
+Tournaments are matched by sequenceIndex; existing ones are skipped.
+All database writes are executed in a single transaction.
+
+ * @summary Bulk import historical tournament data
+ */
+
+export const importTournamentDataBodyTournamentsItemRankingsItemReverseRankingMin = 0;
+
+export const ImportTournamentDataBody = zod.object({
+  tournaments: zod.array(
+    zod.object({
+      sequenceIndex: zod.number().min(1),
+      label: zod.string().nullish(),
+      rankings: zod.array(
+        zod.object({
+          playerName: zod.string().min(1),
+          reverseRanking: zod
+            .number()
+            .min(
+              importTournamentDataBodyTournamentsItemRankingsItemReverseRankingMin,
+            )
+            .nullable(),
+        }),
+      ),
+    }),
+  ),
+});
+
+export const ImportTournamentDataResponse = zod.object({
+  playersCreated: zod.number(),
+  tournamentsImported: zod.number(),
+  rankingsImported: zod.number(),
+});
+
+/**
  * Returns the full ELO history for all players across all tournaments, computed from stored rankings
  * @summary Get computed ELO history
  */

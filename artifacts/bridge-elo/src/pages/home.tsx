@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AddPlayerDialog } from "@/components/AddPlayerDialog";
 import { AddTournamentDialog } from "@/components/AddTournamentDialog";
+import { ImportDialog } from "@/components/ImportDialog";
 import { RankingsTab } from "@/components/RankingsTab";
 import { EloScoresTab } from "@/components/EloScoresTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,7 @@ export default function Home() {
           <h1 className="text-xl font-semibold tracking-tight text-foreground">Bridge ELO Tracker</h1>
         </div>
         <div className="flex items-center gap-2">
+          <ImportDialog />
           <AddPlayerDialog />
           <AddTournamentDialog />
         </div>

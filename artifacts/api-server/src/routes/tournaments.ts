@@ -119,7 +119,7 @@ router.put("/tournaments/:id/rankings", async (req, res): Promise<void> => {
     (r) => r.reverseRanking !== null && r.reverseRanking !== undefined && r.reverseRanking < 0
   );
   if (invalidRanking) {
-    res.status(400).json({ error: "reverseRanking must be a non-negative integer or null" });
+    res.status(400).json({ error: "reverseRanking must be a non-negative number or null" });
     return;
   }
 

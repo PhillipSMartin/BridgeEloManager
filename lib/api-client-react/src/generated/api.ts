@@ -22,6 +22,8 @@ import type {
   EloHistory,
   ErrorResponse,
   HealthStatus,
+  ImportBody,
+  ImportResult,
   Player,
   Tournament,
   TournamentRanking,
@@ -776,6 +778,96 @@ export const useUpsertTournamentRankings = <
   TContext
 > => {
   return useMutation(getUpsertTournamentRankingsMutationOptions(options));
+};
+
+/**
+ * Imports players, tournaments, and rankings from a parsed spreadsheet or CSV.
+Tournaments are matched by sequenceIndex; existing ones are skipped.
+All database writes are executed in a single transaction.
+
+ * @summary Bulk import historical tournament data
+ */
+export const getImportTournamentDataUrl = () => {
+  return `/api/import`;
+};
+
+export const importTournamentData = async (
+  importBody: ImportBody,
+  options?: RequestInit,
+): Promise<ImportResult> => {
+  return customFetch<ImportResult>(getImportTournamentDataUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importBody),
+  });
+};
+
+export const getImportTournamentDataMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importTournamentData>>,
+    TError,
+    { data: BodyType<ImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importTournamentData>>,
+  TError,
+  { data: BodyType<ImportBody> },
+  TContext
+> => {
+  const mutationKey = ["importTournamentData"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importTournamentData>>,
+    { data: BodyType<ImportBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importTournamentData(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportTournamentDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importTournamentData>>
+>;
+export type ImportTournamentDataMutationBody = BodyType<ImportBody>;
+export type ImportTournamentDataMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Bulk import historical tournament data
+ */
+export const useImportTournamentData = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importTournamentData>>,
+    TError,
+    { data: BodyType<ImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importTournamentData>>,
+  TError,
+  { data: BodyType<ImportBody> },
+  TContext
+> => {
+  return useMutation(getImportTournamentDataMutationOptions(options));
 };
 
 /**

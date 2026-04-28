@@ -215,6 +215,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /import:
+    post:
+      operationId: importTournamentData
+      tags: [tournaments]
+      summary: Bulk import historical tournament data
+      description: |
+        Imports players, tournaments, and rankings from a parsed spreadsheet or CSV.
+        Tournaments are matched by sequenceIndex; existing ones are skipped.
+        All database writes are executed in a single transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportBody"
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Database error during import
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /elo-history:
     get:
       operationId: getEloHistory
@@ -305,7 +340,7 @@ components:
         playerId:
           type: integer
         reverseRanking:
-          type: ["integer", "null"]
+          type: ["number", "null"]
         createdAt:
           type: string
           format: date-time
@@ -326,10 +361,63 @@ components:
         playerId:
           type: integer
         reverseRanking:
-          type: ["integer", "null"]
+          type: ["number", "null"]
       required:
         - playerId
         - reverseRanking
+
+    ImportRankingEntry:
+      type: object
+      properties:
+        playerName:
+          type: string
+          minLength: 1
+        reverseRanking:
+          type: ["number", "null"]
+          minimum: 0
+      required:
+        - playerName
+        - reverseRanking
+
+    ImportTournamentEntry:
+      type: object
+      properties:
+        sequenceIndex:
+          type: integer
+          minimum: 1
+        label:
+          type: ["string", "null"]
+        rankings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportRankingEntry"
+      required:
+        - sequenceIndex
+        - rankings
+
+    ImportBody:
+      type: object
+      properties:
+        tournaments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportTournamentEntry"
+      required:
+        - tournaments
+
+    ImportResult:
+      type: object
+      properties:
+        playersCreated:
+          type: integer
+        tournamentsImported:
+          type: integer
+        rankingsImported:
+          type: integer
+      required:
+        - playersCreated
+        - tournamentsImported
+        - rankingsImported
 
     UpsertRankingsBody:
       type: object

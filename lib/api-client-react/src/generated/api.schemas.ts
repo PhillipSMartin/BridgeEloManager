@@ -52,6 +52,34 @@ export interface RankingEntry {
   reverseRanking: number | null;
 }
 
+export interface ImportRankingEntry {
+  /** @minLength 1 */
+  playerName: string;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  reverseRanking: number | null;
+}
+
+export interface ImportTournamentEntry {
+  /** @minimum 1 */
+  sequenceIndex: number;
+  /** @nullable */
+  label?: string | null;
+  rankings: ImportRankingEntry[];
+}
+
+export interface ImportBody {
+  tournaments: ImportTournamentEntry[];
+}
+
+export interface ImportResult {
+  playersCreated: number;
+  tournamentsImported: number;
+  rankingsImported: number;
+}
+
 export interface UpsertRankingsBody {
   rankings: RankingEntry[];
 }
