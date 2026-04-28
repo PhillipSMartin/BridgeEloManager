@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import * as XLSX from "xlsx";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,60 +32,6 @@ interface ParsedData {
   tournaments: ParsedTournament[];
 }
 
-const PLAYER_COLUMNS_START = 1;
-const PLAYER_COLUMNS_END = 10;
-const WINS_COLUMNS_START = 11;
-
-function parseSpreadsheet(workbook: XLSX.WorkBook): ParsedData | null {
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!sheet) return null;
-
-  const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
-    header: 1,
-    defval: null,
-  });
-
-  if (rows.length < 2) return null;
-
-  // Row 1 (index 1) has player names in columns 1-10
-  const headerRow = rows[1] as (string | number | null)[];
-  const players: string[] = [];
-  for (let col = PLAYER_COLUMNS_START; col <= PLAYER_COLUMNS_END; col++) {
-    const name = headerRow[col];
-    if (typeof name === "string" && name.trim()) {
-      players.push(name.trim());
-    }
-  }
-
-  if (players.length === 0) return null;
-
-  const tournaments: ParsedTournament[] = [];
-
-  for (let i = 2; i < rows.length; i++) {
-    const row = rows[i] as (string | number | null)[];
-    const index = row[0];
-    if (typeof index !== "number") continue;
-
-    const rankings: ParsedRanking[] = [];
-    for (let j = 0; j < players.length; j++) {
-      const winsCol = WINS_COLUMNS_START + j;
-      const val = row[winsCol];
-      if (val !== null && typeof val === "number") {
-        rankings.push({ playerName: players[j], reverseRanking: val });
-      }
-    }
-
-    tournaments.push({
-      sequenceIndex: index,
-      label: null,
-      date: null,
-      rankings,
-    });
-  }
-
-  return { players, tournaments };
-}
-
 function parseCsvRow(line: string): string[] {
   const fields: string[] = [];
   let current = "";
@@ -111,9 +56,10 @@ function parseCsvRow(line: string): string[] {
   return fields;
 }
 
-function parseCsvWide(lines: string[]): ParsedData | null {
-  // Wide format: #, Date, Name, Player1, Player2, ...
-  // One row per tournament, player scores as columns
+function parseCsv(text: string): ParsedData | null {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return null;
+
   const header = parseCsvRow(lines[0]);
   const headerLower = header.map((h) => h.toLowerCase().trim());
 
@@ -123,7 +69,6 @@ function parseCsvWide(lines: string[]): ParsedData | null {
 
   if (hashIdx === -1) return null;
 
-  // Player columns start after the metadata columns
   const metaCols = new Set([hashIdx, dateIdx, nameIdx].filter((i) => i !== -1));
   const playerCols: Array<{ idx: number; name: string }> = [];
   for (let i = 0; i < header.length; i++) {
@@ -144,83 +89,26 @@ function parseCsvWide(lines: string[]): ParsedData | null {
     if (isNaN(seqIndex)) continue;
 
     const label = nameIdx !== -1 ? (cols[nameIdx] ?? "").trim() || null : null;
+    const date = dateIdx !== -1 ? (cols[dateIdx] ?? "").trim() || null : null;
 
     const rankings: ParsedRanking[] = [];
     for (const pc of playerCols) {
       const val = (cols[pc.idx] ?? "").trim();
       const parsed = parseFloat(val);
-      const reverseRanking = val === "" || val.toLowerCase() === "null" ? null : (isNaN(parsed) ? null : parsed);
+      const reverseRanking =
+        val === "" || val.toLowerCase() === "null"
+          ? null
+          : isNaN(parsed)
+          ? null
+          : parsed;
       rankings.push({ playerName: pc.name, reverseRanking });
     }
-
-    const date = dateIdx !== -1 ? (cols[dateIdx] ?? "").trim() || null : null;
 
     tournaments.push({ sequenceIndex: seqIndex, label, date, rankings });
   }
 
   if (tournaments.length === 0) return null;
   return { players, tournaments };
-}
-
-function parseCsvNarrow(lines: string[]): ParsedData | null {
-  // Narrow format: Tournament, Player, ReverseRanking (one row per player per tournament)
-  const header = parseCsvRow(lines[0]).map((h) => h.toLowerCase());
-  const tournamentIdx = header.indexOf("tournament");
-  const playerIdx = header.indexOf("player");
-  const rankingIdx = header.indexOf("reverseranking");
-
-  if (tournamentIdx === -1 || playerIdx === -1 || rankingIdx === -1) return null;
-
-  const playerSet = new Set<string>();
-  const tournamentMap = new Map<
-    number,
-    { sequenceIndex: number; label: null; rankings: ParsedRanking[] }
-  >();
-
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvRow(lines[i]);
-    const tIndex = parseInt(cols[tournamentIdx] ?? "", 10);
-    const playerName = (cols[playerIdx] ?? "").trim();
-    const rankingVal = (cols[rankingIdx] ?? "").trim();
-
-    if (isNaN(tIndex) || !playerName) continue;
-
-    playerSet.add(playerName);
-
-    if (!tournamentMap.has(tIndex)) {
-      tournamentMap.set(tIndex, { sequenceIndex: tIndex, label: null, date: null, rankings: [] });
-    }
-
-    const parsed = parseFloat(rankingVal);
-    const reverseRanking = rankingVal === "" || rankingVal.toLowerCase() === "null" ? null : (isNaN(parsed) ? null : parsed);
-    tournamentMap.get(tIndex)!.rankings.push({ playerName, reverseRanking });
-  }
-
-  if (tournamentMap.size === 0) return null;
-
-  const tournaments = Array.from(tournamentMap.values()).sort(
-    (a, b) => a.sequenceIndex - b.sequenceIndex
-  );
-
-  return { players: Array.from(playerSet), tournaments };
-}
-
-function parseCsv(text: string): ParsedData | null {
-  const lines = text
-    .split(/\r?\n/)
-    .filter((l) => l.trim().length > 0);
-
-  if (lines.length < 2) return null;
-
-  const firstHeader = parseCsvRow(lines[0]).map((h) => h.toLowerCase().trim());
-
-  // Detect wide format by presence of "#" as first meaningful column
-  if (firstHeader[0] === "#") {
-    return parseCsvWide(lines);
-  }
-
-  // Fall back to narrow format
-  return parseCsvNarrow(lines);
 }
 
 export function ImportDialog() {
@@ -242,28 +130,17 @@ export function ImportDialog() {
     setParsed(null);
 
     try {
-      if (file.name.endsWith(".csv") || file.type === "text/csv") {
-        const text = await file.text();
-        const result = parseCsv(text);
-        if (!result) {
-          setParseError(
-            "Could not parse CSV. Expected columns: Tournament, Player, ReverseRanking"
-          );
-        } else {
-          setParsed(result);
-        }
+      const text = await file.text();
+      const result = parseCsv(text);
+      if (!result) {
+        setParseError(
+          "Could not parse file. Make sure it was exported from Bridge ELO Tracker."
+        );
       } else {
-        const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: "array" });
-        const result = parseSpreadsheet(workbook);
-        if (!result) {
-          setParseError("Could not parse spreadsheet. Make sure it matches the Bridge ELO format.");
-        } else {
-          setParsed(result);
-        }
+        setParsed(result);
       }
-    } catch (err) {
-      setParseError("Failed to read file. Please check the file format.");
+    } catch {
+      setParseError("Failed to read file.");
     }
   };
 
@@ -332,32 +209,21 @@ export function ImportDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Import Tournament History</DialogTitle>
+          <DialogTitle>Import Tournament Data</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>
-              Upload your Bridge ELO spreadsheet (.xlsx) or a CSV file to import historical
-              tournament data. Existing tournaments will not be overwritten.
-            </p>
-            <p className="text-xs">
-              <strong>Spreadsheet:</strong> must follow the Bridge ELO format — player names in row
-              2 (columns B–K), wins per tournament in the same columns starting from row 3.
-            </p>
-            <p className="text-xs">
-              <strong>CSV:</strong> accepts the file produced by the Export CSV button, or a
-              narrow-format CSV with columns <code>Tournament</code>, <code>Player</code>, and{" "}
-              <code>ReverseRanking</code>.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Upload a CSV file previously exported from Bridge ELO Tracker. Tournaments that already
+            exist in the database will not be overwritten.
+          </p>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Select file</label>
+            <label className="text-sm font-medium">Select CSV file</label>
             <input
               ref={fileRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".csv"
               onChange={handleFileChange}
               className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-secondary/80 cursor-pointer"
               data-testid="input-import-file"
