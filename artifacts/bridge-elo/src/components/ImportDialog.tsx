@@ -226,6 +226,7 @@ export function ImportDialog() {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetEloHistoryQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: ["all-rankings"] }),
       ]);
 
       toast({

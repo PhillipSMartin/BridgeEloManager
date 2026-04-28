@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, asc } from "drizzle-orm";
-import { db, tournamentsTable, tournamentRankingsTable } from "@workspace/db";
+import { db, tournamentsTable, tournamentRankingsTable, playersTable } from "@workspace/db";
 import {
   DeleteTournamentParams,
   GetTournamentRankingsParams,
@@ -159,6 +159,29 @@ router.put("/tournaments/:id/rankings", async (req, res): Promise<void> => {
   );
 
   res.json(UpsertTournamentRankingsResponse.parse(results));
+});
+
+router.get("/all-rankings", async (req, res): Promise<void> => {
+  const [allRankings, allPlayers] = await Promise.all([
+    db.select().from(tournamentRankingsTable),
+    db.select().from(playersTable).orderBy(asc(playersTable.createdAt)),
+  ]);
+
+  const byTournament: Record<number, { playerId: number; playerName: string; reverseRanking: number | null }[]> = {};
+  const playerNameById = new Map(allPlayers.map((p) => [p.id, p.name]));
+
+  for (const r of allRankings) {
+    if (!byTournament[r.tournamentId]) {
+      byTournament[r.tournamentId] = [];
+    }
+    byTournament[r.tournamentId].push({
+      playerId: r.playerId,
+      playerName: playerNameById.get(r.playerId) ?? "",
+      reverseRanking: r.reverseRanking,
+    });
+  }
+
+  res.json(byTournament);
 });
 
 export default router;
