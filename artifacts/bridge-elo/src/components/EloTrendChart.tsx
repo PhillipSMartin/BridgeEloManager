@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -9,6 +9,22 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useBridgeData } from "@/hooks/use-bridge";
+
+const STORAGE_KEY = "bridge-elo:hidden-players";
+
+function loadHiddenPlayers(): Set<number> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as number[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveHiddenPlayers(hidden: Set<number>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...hidden]));
+}
 
 const COLORS = [
   "#3b82f6",
@@ -25,7 +41,7 @@ const COLORS = [
 
 export function EloTrendChart() {
   const { eloHistory } = useBridgeData();
-  const [hiddenPlayers, setHiddenPlayers] = useState<Set<number>>(new Set());
+  const [hiddenPlayers, setHiddenPlayers] = useState<Set<number>>(loadHiddenPlayers);
 
   const players = eloHistory?.players ?? [];
   const snapshots = eloHistory?.snapshots ?? [];
@@ -50,6 +66,7 @@ export function EloTrendChart() {
       } else {
         next.add(playerId);
       }
+      saveHiddenPlayers(next);
       return next;
     });
   };
