@@ -6,18 +6,14 @@ interface RankingEntry {
   reverseRanking: number | null;
 }
 
-interface PlayerElo {
-  playerId: number;
-  elo: number;
-}
-
 /**
  * Calculate ELO updates for a single tournament round.
  *
- * Algorithm (extracted from Bridge ELO spreadsheet):
+ * Algorithm:
  * 1. Gather players who participated (reverseRanking is not null)
  * 2. V = sum of all reverse rankings
- * 3. For each player who played: expected_i = 1 / (1 + 10^((1500 - ELO_i) / 400))
+ * 3. For each player i: expected_i = average pairwise win probability against each other participant j:
+ *      (1 / (n-1)) * Σ_j  1 / (1 + 10^((Rj - Ri) / 400))
  * 4. AG = sum of all expected scores
  * 5. diff_i = (ranking_i / V) - (expected_i / AG) [0 if didn't play]
  * 6. max_rank = MAX of all reverse rankings in this round
@@ -48,7 +44,12 @@ export function computeEloUpdates(
 
   for (const p of participants) {
     const elo = currentElos.get(p.playerId) ?? BASE_ELO;
-    const expected = 1 / (1 + Math.pow(10, (BASE_ELO - elo) / 400));
+    const opponents = participants.filter((o) => o.playerId !== p.playerId);
+    const pairwiseSum = opponents.reduce((sum, o) => {
+      const opponentElo = currentElos.get(o.playerId) ?? BASE_ELO;
+      return sum + 1 / (1 + Math.pow(10, (opponentElo - elo) / 400));
+    }, 0);
+    const expected = opponents.length > 0 ? pairwiseSum / opponents.length : 0;
     expectedScores.set(p.playerId, expected);
     AG += expected;
   }
