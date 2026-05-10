@@ -12,6 +12,83 @@ import { useBridgeData } from "@/hooks/use-bridge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+const NEW_NAME_SENTINEL = "__new__";
+
+interface LabelCellProps {
+  value: string;
+  existingLabels: string[];
+  onChange: (val: string) => void;
+  onCommit: (val: string) => void;
+  placeholder?: string;
+  testId?: string;
+}
+
+function LabelCell({ value, existingLabels, onChange, onCommit, placeholder = "Optional name", testId }: LabelCellProps) {
+  const isKnown = existingLabels.includes(value);
+  const [mode, setMode] = useState<"select" | "custom">(
+    value !== "" && !isKnown ? "custom" : "select"
+  );
+
+  const selectValue = mode === "custom" ? NEW_NAME_SENTINEL : (value || "");
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const chosen = e.target.value;
+    if (chosen === NEW_NAME_SENTINEL) {
+      setMode("custom");
+      onChange("");
+    } else {
+      setMode("select");
+      onChange(chosen);
+      onCommit(chosen);
+    }
+  };
+
+  const handleInputBlur = () => {
+    onCommit(value);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setMode("select");
+      onChange("");
+      onCommit("");
+    }
+  };
+
+  const baseSelectClass =
+    "h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-xs hover:border-input focus:border-input focus:outline-none focus:ring-0 cursor-pointer";
+
+  if (mode === "custom") {
+    return (
+      <Input
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={handleInputBlur}
+        onKeyDown={handleInputKeyDown}
+        placeholder={placeholder}
+        className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
+        data-testid={testId}
+      />
+    );
+  }
+
+  return (
+    <select
+      value={selectValue}
+      onChange={handleSelectChange}
+      className={baseSelectClass}
+      data-testid={testId}
+    >
+      <option value="">— {placeholder} —</option>
+      {existingLabels.map((label) => (
+        <option key={label} value={label}>{label}</option>
+      ))}
+      <option value={NEW_NAME_SENTINEL}>New name…</option>
+    </select>
+  );
+}
+
 type RankingEntry = { playerId: number; reverseRanking: number | null };
 type AllRankings = Record<number, RankingEntry[]>;
 
@@ -125,6 +202,10 @@ export function RankingsTab() {
     ? Math.max(...tournaments.map((t) => t.sequenceIndex)) + 1
     : 1;
 
+  const existingLabels = Array.from(
+    new Set(tournaments.map((t) => t.label).filter((l): l is string => !!l))
+  );
+
   const hasDraftValues = players.some((p) => (draftValues[p.id] ?? "").trim() !== "");
 
   return (
@@ -148,6 +229,7 @@ export function RankingsTab() {
                 tournament={t}
                 players={players}
                 localEdits={localEdits}
+                existingLabels={existingLabels}
                 onChange={handleChange}
                 onBlur={handleBlur}
               />
@@ -166,12 +248,12 @@ export function RankingsTab() {
                 />
               </td>
               <td className="px-2 py-1 border-r">
-                <Input
+                <LabelCell
                   value={draftLabel}
-                  onChange={(e) => setDraftLabel(e.target.value)}
-                  placeholder="Optional name"
-                  className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
-                  data-testid="input-draft-label"
+                  existingLabels={existingLabels}
+                  onChange={setDraftLabel}
+                  onCommit={setDraftLabel}
+                  testId="input-draft-label"
                 />
               </td>
               {players.map((p) => (
@@ -213,11 +295,12 @@ interface TournamentRowProps {
   tournament: Tournament;
   players: Player[];
   localEdits: Record<string, string>;
+  existingLabels: string[];
   onChange: (tournamentId: number, playerId: number, val: string) => void;
   onBlur: (tournamentId: number, playerId: number) => void;
 }
 
-function TournamentRow({ tournament, players, localEdits, onChange, onBlur }: TournamentRowProps) {
+function TournamentRow({ tournament, players, localEdits, existingLabels, onChange, onBlur }: TournamentRowProps) {
   const queryClient = useQueryClient();
   const updateTournament = useUpdateTournament();
   const [localDate, setLocalDate] = useState(tournament.date ?? "");
@@ -247,13 +330,12 @@ function TournamentRow({ tournament, players, localEdits, onChange, onBlur }: To
         />
       </td>
       <td className="px-2 py-1 border-r min-w-36">
-        <Input
+        <LabelCell
           value={localLabel}
-          onChange={(e) => setLocalLabel(e.target.value)}
-          onBlur={() => handleMetaBlur("label", localLabel)}
-          placeholder="Optional name"
-          className="h-8 bg-transparent border-transparent hover:border-input focus:bg-background text-xs"
-          data-testid={`input-label-${tournament.id}`}
+          existingLabels={existingLabels}
+          onChange={setLocalLabel}
+          onCommit={(val) => handleMetaBlur("label", val)}
+          testId={`input-label-${tournament.id}`}
         />
       </td>
       {players.map((p) => {
