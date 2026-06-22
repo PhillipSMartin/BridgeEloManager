@@ -204,7 +204,7 @@ export function RankingsTab() {
 
   const existingLabels = Array.from(
     new Set(tournaments.map((t) => t.label).filter((l): l is string => !!l))
-  );
+  ).sort((a, b) => a.localeCompare(b));
 
   const hasDraftValues = players.some((p) => (draftValues[p.id] ?? "").trim() !== "");
 
