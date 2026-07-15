@@ -16,11 +16,17 @@ export interface ErrorResponse {
 export interface Player {
   id: number;
   name: string;
+  sortOrder: number;
   createdAt: string;
 }
 
 export interface CreatePlayerBody {
   name: string;
+}
+
+export interface UpdatePlayerBody {
+  name?: string;
+  sortOrder?: number;
 }
 
 export interface Tournament {

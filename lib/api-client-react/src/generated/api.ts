@@ -27,6 +27,7 @@ import type {
   Player,
   Tournament,
   TournamentRanking,
+  UpdatePlayerBody,
   UpdateTournamentBody,
   UpsertRankingsBody,
 } from "./api.schemas";
@@ -274,6 +275,93 @@ export const useCreatePlayer = <
   TContext
 > => {
   return useMutation(getCreatePlayerMutationOptions(options));
+};
+
+/**
+ * @summary Update a player's name and/or sort order
+ */
+export const getUpdatePlayerUrl = (id: number) => {
+  return `/api/players/${id}`;
+};
+
+export const updatePlayer = async (
+  id: number,
+  updatePlayerBody: UpdatePlayerBody,
+  options?: RequestInit,
+): Promise<Player> => {
+  return customFetch<Player>(getUpdatePlayerUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePlayerBody),
+  });
+};
+
+export const getUpdatePlayerMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlayer>>,
+    TError,
+    { id: number; data: BodyType<UpdatePlayerBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePlayer>>,
+  TError,
+  { id: number; data: BodyType<UpdatePlayerBody> },
+  TContext
+> => {
+  const mutationKey = ["updatePlayer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePlayer>>,
+    { id: number; data: BodyType<UpdatePlayerBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updatePlayer(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePlayerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePlayer>>
+>;
+export type UpdatePlayerMutationBody = BodyType<UpdatePlayerBody>;
+export type UpdatePlayerMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a player's name and/or sort order
+ */
+export const useUpdatePlayer = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlayer>>,
+    TError,
+    { id: number; data: BodyType<UpdatePlayerBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePlayer>>,
+  TError,
+  { id: number; data: BodyType<UpdatePlayerBody> },
+  TContext
+> => {
+  return useMutation(getUpdatePlayerMutationOptions(options));
 };
 
 /**

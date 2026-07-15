@@ -35,6 +35,23 @@ export async function bootstrapDatabase(): Promise<void> {
       ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS date TEXT;
     `);
 
+    // Add sort_order column to players if it doesn't exist
+    await client.query(`
+      ALTER TABLE players ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+    `);
+
+    // Initialize sort_order for existing players that all have 0
+    await client.query(`
+      UPDATE players p
+      SET sort_order = sub.rn - 1
+      FROM (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) AS rn
+        FROM players
+        WHERE sort_order = 0
+      ) sub
+      WHERE p.id = sub.id AND (SELECT COUNT(*) FROM players WHERE sort_order != 0) = 0;
+    `);
+
     // Migrate reverse_ranking from INTEGER to REAL if needed (supports fractional wins like 0.5)
     await client.query(`
       DO $$

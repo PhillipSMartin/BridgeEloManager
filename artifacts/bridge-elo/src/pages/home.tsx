@@ -1,5 +1,5 @@
 import React from "react";
-import { AddPlayerDialog } from "@/components/AddPlayerDialog";
+import { ManagePlayersDialog } from "@/components/ManagePlayersDialog";
 import { ImportDialog } from "@/components/ImportDialog";
 import { ExportButton } from "@/components/ExportButton";
 import { RankingsTab } from "@/components/RankingsTab";
@@ -21,7 +21,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <ExportButton />
           <ImportDialog />
-          <AddPlayerDialog />
+          <ManagePlayersDialog />
         </div>
       </header>
 

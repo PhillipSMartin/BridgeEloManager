@@ -12,7 +12,7 @@ router.get("/elo-history", async (req, res): Promise<void> => {
   const players = await db
     .select()
     .from(playersTable)
-    .orderBy(asc(playersTable.createdAt));
+    .orderBy(asc(playersTable.sortOrder), asc(playersTable.createdAt));
 
   const tournaments = await db
     .select()
@@ -65,6 +65,7 @@ router.get("/elo-history", async (req, res): Promise<void> => {
     players: players.map((p) => ({
       id: p.id,
       name: p.name,
+      sortOrder: p.sortOrder,
       createdAt: p.createdAt,
     })),
     snapshots,

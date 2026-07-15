@@ -22,6 +22,7 @@ export const HealthCheckResponse = zod.object({
 export const ListPlayersResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
+  sortOrder: zod.number(),
   createdAt: zod.coerce.date(),
 });
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem);
@@ -31,6 +32,25 @@ export const ListPlayersResponse = zod.array(ListPlayersResponseItem);
  */
 export const CreatePlayerBody = zod.object({
   name: zod.string(),
+});
+
+/**
+ * @summary Update a player's name and/or sort order
+ */
+export const UpdatePlayerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdatePlayerBody = zod.object({
+  name: zod.string().optional(),
+  sortOrder: zod.number().optional(),
+});
+
+export const UpdatePlayerResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  sortOrder: zod.number(),
+  createdAt: zod.coerce.date(),
 });
 
 /**
@@ -180,6 +200,7 @@ export const GetEloHistoryResponse = zod.object({
     zod.object({
       id: zod.number(),
       name: zod.string(),
+      sortOrder: zod.number(),
       createdAt: zod.coerce.date(),
     }),
   ),
