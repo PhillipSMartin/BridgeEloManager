@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,11 @@ export function ManagePlayersDialog() {
   const [newName, setNewName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  const sorted = [...players].sort((a, b) => a.sortOrder - b.sortOrder);
+  const [localOrder, setLocalOrder] = useState<Player[] | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const sorted = localOrder ?? [...players].sort((a, b) => a.sortOrder - b.sortOrder);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey() });
@@ -59,21 +63,52 @@ export function ManagePlayersDialog() {
     setEditingId(null);
   };
 
-  const move = async (player: Player, direction: -1 | 1) => {
-    const idx = sorted.findIndex((p) => p.id === player.id);
-    const swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const other = sorted[swapIdx];
+  const handleDragStart = (idx: number) => {
+    dragIndexRef.current = idx;
+    if (!localOrder) setLocalOrder(sorted);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIndexRef.current === null || dragIndexRef.current === idx) return;
+    setDragOverIndex(idx);
+    const next = [...(localOrder ?? sorted)];
+    const [moved] = next.splice(dragIndexRef.current, 1);
+    next.splice(idx, 0, moved);
+    dragIndexRef.current = idx;
+    setLocalOrder(next);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
+
+    if (!localOrder) return;
+
+    const updates = localOrder
+      .map((p, i) => ({ id: p.id, sortOrder: i, oldOrder: p.sortOrder }))
+      .filter((u) => u.sortOrder !== u.oldOrder);
+
+    if (updates.length === 0) {
+      setLocalOrder(null);
+      return;
+    }
 
     try {
-      await Promise.all([
-        updatePlayer.mutateAsync({ id: player.id, data: { sortOrder: other.sortOrder } }),
-        updatePlayer.mutateAsync({ id: other.id, data: { sortOrder: player.sortOrder } }),
-      ]);
+      await Promise.all(
+        updates.map((u) => updatePlayer.mutateAsync({ id: u.id, data: { sortOrder: u.sortOrder } }))
+      );
       invalidate();
     } catch {
       toast({ title: "Reorder failed", variant: "destructive" });
+      setLocalOrder(null);
     }
+  };
+
+  const handleDragEnd = () => {
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -83,6 +118,7 @@ export function ManagePlayersDialog() {
     setIsAdding(true);
     try {
       await createPlayer.mutateAsync({ data: { name } });
+      setLocalOrder(null);
       invalidate();
       setNewName("");
     } catch {
@@ -92,8 +128,13 @@ export function ManagePlayersDialog() {
     }
   };
 
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) setLocalOrder(null);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="secondary" data-testid="button-manage-players">
           Manage Players
@@ -108,26 +149,23 @@ export function ManagePlayersDialog() {
           {sorted.map((player, idx) => (
             <div
               key={player.id}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 group"
+              draggable
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors ${
+                dragOverIndex === idx
+                  ? "bg-primary/10 border border-primary/30"
+                  : "hover:bg-muted/50 border border-transparent"
+              }`}
             >
-              <div className="flex flex-col gap-0.5">
-                <button
-                  onClick={() => move(player, -1)}
-                  disabled={idx === 0 || updatePlayer.isPending}
-                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none text-xs"
-                  aria-label="Move up"
-                >
-                  ▲
-                </button>
-                <button
-                  onClick={() => move(player, 1)}
-                  disabled={idx === sorted.length - 1 || updatePlayer.isPending}
-                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none text-xs"
-                  aria-label="Move down"
-                >
-                  ▼
-                </button>
-              </div>
+              <span
+                className="text-muted-foreground cursor-grab active:cursor-grabbing select-none text-base leading-none px-0.5"
+                aria-label="Drag to reorder"
+              >
+                ⠿
+              </span>
 
               {editingId === player.id ? (
                 <Input
