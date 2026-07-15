@@ -33,6 +33,7 @@ export function ManagePlayersDialog() {
   const [isAdding, setIsAdding] = useState(false);
 
   const [localOrder, setLocalOrder] = useState<Player[] | null>(null);
+  const workingOrderRef = useRef<Player[]>([]);
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -65,18 +66,19 @@ export function ManagePlayersDialog() {
 
   const handleDragStart = (idx: number) => {
     dragIndexRef.current = idx;
-    if (!localOrder) setLocalOrder(sorted);
+    workingOrderRef.current = [...sorted];
   };
 
   const handleDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault();
     if (dragIndexRef.current === null || dragIndexRef.current === idx) return;
     setDragOverIndex(idx);
-    const next = [...(localOrder ?? sorted)];
+    const next = [...workingOrderRef.current];
     const [moved] = next.splice(dragIndexRef.current, 1);
     next.splice(idx, 0, moved);
+    workingOrderRef.current = next;
     dragIndexRef.current = idx;
-    setLocalOrder(next);
+    setLocalOrder([...next]);
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -84,11 +86,13 @@ export function ManagePlayersDialog() {
     setDragOverIndex(null);
     dragIndexRef.current = null;
 
-    if (!localOrder) return;
+    const final = workingOrderRef.current;
+    if (!final.length) return;
 
-    const updates = localOrder
-      .map((p, i) => ({ id: p.id, sortOrder: i, oldOrder: p.sortOrder }))
-      .filter((u) => u.sortOrder !== u.oldOrder);
+    const originalSorted = [...players].sort((a, b) => a.sortOrder - b.sortOrder);
+    const updates = final
+      .map((p, i) => ({ id: p.id, newOrder: i, oldOrder: originalSorted.findIndex((o) => o.id === p.id) }))
+      .filter((u) => u.newOrder !== u.oldOrder);
 
     if (updates.length === 0) {
       setLocalOrder(null);
@@ -97,7 +101,7 @@ export function ManagePlayersDialog() {
 
     try {
       await Promise.all(
-        updates.map((u) => updatePlayer.mutateAsync({ id: u.id, data: { sortOrder: u.sortOrder } }))
+        updates.map((u) => updatePlayer.mutateAsync({ id: u.id, data: { sortOrder: u.newOrder } }))
       );
       invalidate();
     } catch {
